@@ -11,7 +11,7 @@ yarn install
 3️⃣ Set Up Environment Variables
 Create a .env file in the root directory and add your API base URL:
 
-REACT_APP_API_BASE_URL=https://api.restful-api.dev
+REACT_APP_API_BASE_URL=http://localhost:4000
 Note: If the .env file is missing, the app might not connect to the API properly.
 
 4️⃣ Start the Development Server
