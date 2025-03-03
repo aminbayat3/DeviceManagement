@@ -2,18 +2,15 @@ import React, { useState, useMemo } from "react";
 import { Device } from "../types/types";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
 
-import { useApi } from "../hooks/useApi";
-
 type DeviceListProps = {
   devices: Device[];
-  onEditDevice: (id: string) => void;
+  onEditDevice: (device: Device) => void;
+  onDeleteDevice: (device: Device) => void;
   onAddDevice: () => void;
-  refreshDevices : () => void;
 };
 
-const DeviceList: React.FC<DeviceListProps> = ({ devices, onEditDevice, onAddDevice, refreshDevices }) => {
+const DeviceList: React.FC<DeviceListProps> = ({ devices, onEditDevice, onDeleteDevice, onAddDevice }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { apiRequest, loading, error } = useApi<{message: string}>("");
 
   const filteredDevices = useMemo(() => {
     if (!searchTerm) return devices;
@@ -26,11 +23,6 @@ const DeviceList: React.FC<DeviceListProps> = ({ devices, onEditDevice, onAddDev
         )
     );
   }, [devices, searchTerm]);
-
-  const handleDelete = async (id: string) => {
-      await apiRequest("DELETE", undefined, {}, `/objects/${id}`); 
-      refreshDevices();
-  };
 
   return (
     <section className="bg-white shadow-md rounded-lg p-6">
@@ -74,11 +66,11 @@ const DeviceList: React.FC<DeviceListProps> = ({ devices, onEditDevice, onAddDev
               <div className="flex gap-3 justify-center">
                 <PencilSquareIcon
                   className="h-6 w-6 text-blue-500 hover:text-blue-700 cursor-pointer"
-                  onClick={() => onEditDevice(device.id)}
+                  onClick={() => onEditDevice(device)}
                 />
                 <TrashIcon
                   className="h-6 w-6 text-red-500 hover:text-red-700 cursor-pointer"
-                  onClick={() => handleDelete(device.id)}
+                  onClick={() => onDeleteDevice(device)}
                 />
               </div>
             </div>

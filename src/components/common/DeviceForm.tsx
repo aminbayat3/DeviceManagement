@@ -7,35 +7,48 @@ import {
   ActionType,
 } from "../../types/types";
 
-import { parseStorage } from "../../utils/utils";
+import { parseStorage, validateDeviceForm } from "../../utils/utils";
 
 type DeviceFormProps = {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
   onSave: (device: DeviceFormState) => void;
   actionType: ActionType;
-  loading: boolean;
-  error?: string | null;
-  initialData?: Device;
+  initialData?: Device | null;
 };
+
+const POPULAR_COLORS = [
+  "Black",
+  "White",
+  "Silver",
+  "Gray",
+  "Red",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Purple",
+  "Pink",
+];
 
 const INITIAL_DEVICE_VALUE: DeviceFormState = {
   name: "",
   price: null,
   category: DeviceCategory.Other,
-  color: "",
+  color: "Black",
   storageSize: null,
   storageUnit: StorageUnit.GB,
 };
 
 const DeviceForm: React.FC<DeviceFormProps> = ({
-  open,
+  isOpen,
   onClose,
   onSave,
   actionType,
   initialData,
 }) => {
   const [device, setDevice] = useState<DeviceFormState>(INITIAL_DEVICE_VALUE);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     if (!initialData) {
@@ -52,7 +65,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
       price: (initialData.price as number) ?? null,
       category:
         (initialData.category as DeviceCategory) || DeviceCategory.Other,
-      color: (initialData.color as string) || "",
+      color: (initialData.color as string) || "Black",
       storageSize,
       storageUnit,
     });
@@ -62,34 +75,56 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-
     setDevice((prevDevice) => ({ ...prevDevice, [name]: value }));
+    setTouched((prevTouched) => ({ ...prevTouched, [name]: true }));
+    setErrors(validateDeviceForm({ ...device, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const validationErrors = validateDeviceForm(device);
+    setErrors(validationErrors);
+    setTouched({ name: true, price: true, storageSize: true }); 
+    if (Object.keys(validationErrors).length > 0) return;
     onSave(device);
+    setDevice(INITIAL_DEVICE_VALUE);
+    setTouched({});
   };
 
-  if (!open) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-lg font-bold mb-4">Add New Device</h2>
+        <h2 className="text-lg font-bold mb-4">
+          {actionType === ActionType.Create ? "Add New Device" : "Edit Device"}
+        </h2>
 
         <form onSubmit={handleSubmit}>
+          {touched.name && errors.name && (
+            <p className="text-red-500 text-sm">{errors.name}</p>
+          )}
           <input
-            className="w-full p-2 border rounded-md mb-3"
+            className={`w-full p-2 border rounded-md mb-3 ${
+              touched.name && errors.name ? "border-red-500" : "border-gray-300"
+            }`}
             type="text"
             name="name"
             placeholder="Name"
             value={device.name}
             onChange={handleChange}
-            required
+            maxLength={50}
           />
+
+          {touched.price && errors.price && (
+            <p className="text-red-500 text-sm">{errors.price}</p>
+          )}
           <input
-            className="w-full p-2 border rounded-md mb-3"
+            className={`w-full p-2 border rounded-md mb-3 ${
+              touched.price && errors.price
+                ? "border-red-500"
+                : "border-gray-300"
+            }`}
             type="number"
             name="price"
             min="1"
@@ -97,7 +132,6 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
             placeholder="Price"
             value={device.price ?? ""}
             onChange={handleChange}
-            required
           />
 
           <select
@@ -113,19 +147,29 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
             ))}
           </select>
 
-          <input
+          <select
             className="w-full p-2 border rounded-md mb-3"
-            type="text"
             name="color"
-            placeholder="Color"
             value={device.color}
             onChange={handleChange}
-            required
-          />
+          >
+            {POPULAR_COLORS.map((color) => (
+              <option key={color} value={color}>
+                {color}
+              </option>
+            ))}
+          </select>
 
+          {touched.storageSize && errors.storageSize && (
+            <p className="text-red-500 text-sm">{errors.storageSize}</p>
+          )}
           <div className="flex gap-2 mb-5">
             <input
-              className="w-2/3 p-2 border rounded-md"
+              className={`w-2/3 p-2 border rounded-md ${
+                touched.storageSize && errors.storageSize
+                  ? "border-red-500"
+                  : "border-gray-300"
+              }`}
               type="number"
               name="storageSize"
               placeholder="Storage Size"
@@ -133,7 +177,6 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
               max="1000000"
               value={device.storageSize ?? ""}
               onChange={handleChange}
-              required
             />
             <select
               className="w-1/3 p-2 border rounded-md"
@@ -156,8 +199,9 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
             <button
               className="bg-blue-500 text-white px-4 py-2 rounded-md"
               type="submit"
+              data-testid={actionType === ActionType.Create ? "create-button" : "edit-button"}
             >
-             {actionType === ActionType.Create ? "Create" : "Edit"} 
+              {actionType === ActionType.Create ? "Create" : "Edit"}
             </button>
           </div>
         </form>

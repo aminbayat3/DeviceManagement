@@ -43,7 +43,25 @@ export type DeviceApiResponse = {
   data?: DeviceData;
 }
 
-export type DeviceData = Record<string, string | number | undefined>;
+export type DeviceData = {
+  color?: string;
+  capacity?: string; 
+  "capacity GB"?: number; 
+  "capacity TB"?: number; 
+  price?: number;
+  Price?: string; 
+  generation?: string; 
+  Generation?: string;
+  year?: number;
+  "CPU model"?: string; 
+  "Hard disk size"?: string;
+  "Strap Colour"?: string; 
+  "Case Size"?: string; 
+  Description?: string; 
+  "Screen size"?: number; 
+  category?: string; 
+  storage?: string; 
+};
 
 export enum ActionType {
   Create = "Create",

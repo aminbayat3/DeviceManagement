@@ -1,65 +1,50 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import DeviceForm from "./common/DeviceForm";
-import { useApi } from "../hooks/useApi";
+import { useDeviceContext } from "../context/DeviceContext";
 
-import { DeviceApiResponse, DeviceFormState, ActionType, Device } from "../types/types";
-
-import { formatDeviceData } from "../utils/utils";
+import {
+  DeviceFormState,
+  ActionType,
+  Device,
+} from "../types/types";
 
 interface EditDeviceFormProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
-  deviceId: string | null;
-  refreshDevices: () => void;
+  editingDevice: Device | null;
 }
 
 const EditDeviceForm: React.FC<EditDeviceFormProps> = ({
-  open,
+  isOpen,
   onClose,
-  deviceId,
-  refreshDevices
+  editingDevice,
 }) => {
-  const {
-    apiRequest,
-    data: deviceData,
-    loading,
-    error,
-  } = useApi<DeviceApiResponse[]>(deviceId ? `/objects?id=${deviceId}` : "");
-
-  const [device, setDevice] = useState<Device>({} as Device);
-
-  useEffect(() => {
-    if (!deviceId) return;
-
-    const fetchDevice = async () => {
-      await apiRequest("GET");
-    };
-
-    fetchDevice(); 
-  }, [deviceId, apiRequest]);
-
-  useEffect(() => {
-    if (deviceData) {
-      setDevice(formatDeviceData(deviceData)[0]);
-    }
-  }, [deviceData]);
+  const { updateDevice } = useDeviceContext();
 
   const handleEdit = async (updatedDevice: DeviceFormState) => {
-    if (!deviceId) return;
-      await apiRequest("PUT", updatedDevice, {}, `/objects/${deviceId}`);
-      refreshDevices();
-      onClose();
+    const formattedDeviceData = {
+      name: updatedDevice.name,
+      data: {
+        price: updatedDevice.price ?? undefined,
+        category: updatedDevice.category ?? undefined,
+        color: updatedDevice.color ?? undefined,
+        storage: updatedDevice.storageSize
+          ? `${updatedDevice.storageSize} ${updatedDevice.storageUnit}`
+          : undefined,
+      },
+    };
+    if (!editingDevice) return;
+    await updateDevice(editingDevice.id, formattedDeviceData);
+    onClose();
   };
 
   return (
     <DeviceForm
-      open={open}
+      isOpen={isOpen}
       onClose={onClose}
       onSave={handleEdit}
-      loading={loading}
-      error={error}
       actionType={ActionType.Edit}
-      initialData={device}
+      initialData={editingDevice}
     />
   );
 };

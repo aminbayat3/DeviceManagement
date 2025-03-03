@@ -2,54 +2,51 @@ import { useEffect, useState } from "react";
 
 import CreateDeviceForm from "./components/CreateDeviceForm";
 import EditDeviceForm from "./components/EditDeviceForm";
+import DeleteConfirmationModal from "./components/DeleteDeviceModal";
 import DeviceList from "./components/DeviceList";
-import { useApi } from "./hooks/useApi";
+import { useDeviceContext } from "./context/DeviceContext";
+import { useStatusContext } from "./context/StatusContext";
 import { useModalStatus } from "./hooks/useModalStatus";
-import { formatDeviceData } from "./utils/utils";
-import { DeviceApiResponse, Device } from "./types/types";
+import { Device } from "./types/types";
 
 function App() {
-  const {
-    data,
-    loading,
-    error,
-    apiRequest: fetchDevices,
-  } = useApi<DeviceApiResponse[]>("/objects");
-  const [deviceList, setDeviceList] = useState<Device[]>([]);
-  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const { fetchDevices, deviceList } = useDeviceContext();
+  const { isLoading, error, isSuccessful } = useStatusContext();
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [deletingDevice, setDeletingDevice] = useState<Device>({} as Device);
 
   const {
-    modal: isCreateOpen,
-    open: openCreate,
-    close: closeCreate,
+    modal: isCreateFormOpen,
+    open: openCreateForm,
+    close: closeCreateForm,
   } = useModalStatus();
   const {
-    modal: isEditOpen,
-    open: openEdit,
-    close: closeEdit,
+    modal: isEditFormOpen,
+    open: openEditForm,
+    close: closeEditForm,
+  } = useModalStatus();
+  const {
+    modal: isDeleteModalOpen,
+    open: openDeleteModal,
+    close: closeDeleteModal,
   } = useModalStatus();
 
   useEffect(() => {
-    const fetchData = async () => {
-      await fetchDevices("GET");
+    const fetchAllDevices = async () => {
+      await fetchDevices();
     };
 
-    fetchData();
-  }, [fetchDevices]);
+    fetchAllDevices();
+  }, []);
 
-  useEffect(() => {
-    if (data) {
-      setDeviceList(formatDeviceData(data));
-    }
-  }, [data]);
-
-  const refreshDevices = async () => {
-    await fetchDevices("GET");
+  const handleEditDevice = (device: Device) => {
+    setEditingDevice(device);
+    openEditForm();
   };
 
-  const handleEditDevice = (id: string) => {
-    setEditingDeviceId(id);
-    openEdit();
+  const handleDeletePrompt = (device: Device) => {
+    setDeletingDevice(device);
+    openDeleteModal();
   };
 
   return (
@@ -60,31 +57,44 @@ function App() {
         </h1>
       </header>
 
-      <main className="container flex-grow mx-auto p-6">
-        {loading && (
-          <p className="text-center text-gray-600">Loading devices...</p>
-        )}
-        {error && <p className="text-center text-red-500">{error}</p>}
-
+      <main className="container flex-grow mx-auto p-6 flex-col">
+      {isLoading && (
+            <p role="status" className="text-center text-gray-600">
+              Loading...
+            </p>
+          )}
+          {error && (
+            <p role="status" className="text-center text-red-500">
+              {error}
+            </p>
+          )}
+          {isSuccessful && (
+            <p
+              className="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white p-3 rounded shadow-md"
+              role="status"
+            >
+              Action completed successfully!
+            </p>
+          )}
         <section aria-labelledby="device-list-heading">
           <DeviceList
             devices={deviceList}
             onEditDevice={handleEditDevice}
-            onAddDevice={openCreate}
-            refreshDevices={refreshDevices}
+            onDeleteDevice={handleDeletePrompt}
+            onAddDevice={openCreateForm}
           />
         </section>
 
-        <CreateDeviceForm
-          open={isCreateOpen}
-          onClose={closeCreate}
-          refreshDevices={refreshDevices}
-        />
+        <CreateDeviceForm isOpen={isCreateFormOpen} onClose={closeCreateForm} />
         <EditDeviceForm
-          open={isEditOpen}
-          onClose={closeEdit}
-          deviceId={editingDeviceId}
-          refreshDevices={refreshDevices}
+          isOpen={isEditFormOpen}
+          onClose={closeEditForm}
+          editingDevice={editingDevice}
+        />
+        <DeleteConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={closeDeleteModal}
+          deletingDevice={deletingDevice}
         />
       </main>
 

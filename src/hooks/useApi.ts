@@ -1,23 +1,19 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useStatusContext } from "../context/StatusContext";
 
 interface ApiResponse<T> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
   apiRequest: (
     method?: string,
     body?: any,
     customHeaders?: HeadersInit,
-    endpoint?: string,
-  ) => Promise<void>;
+    endpoint?: string
+  ) => Promise<T | null>;
 }
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 export const useApi = <T>(defaultEndpoint: string): ApiResponse<T> => {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setIsLoading, setError, setIsSuccessful } = useStatusContext();
 
   const apiRequest = useCallback(
     async (
@@ -25,9 +21,10 @@ export const useApi = <T>(defaultEndpoint: string): ApiResponse<T> => {
       body?: any,
       customHeaders?: HeadersInit,
       endpoint?: string
-    ) => {
-      setLoading(true);
+    ): Promise<T | null> => {
+      setIsLoading(true);
       setError(null);
+
       try {
         const url = `${API_BASE_URL}${endpoint || defaultEndpoint}`;
 
@@ -44,16 +41,19 @@ export const useApi = <T>(defaultEndpoint: string): ApiResponse<T> => {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
-        const result = await response.json();
-        setData(result);
+        const result: T = await response.json();
+        method !== "GET" && setIsSuccessful(true)
+
+        return result;
       } catch (err: any) {
         setError(err.message || "Something went wrong");
+        return null;
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     },
-    [defaultEndpoint]
+    [defaultEndpoint, setIsLoading, setError, setIsSuccessful]
   );
 
-  return { data, loading, error, apiRequest };
+  return { apiRequest };
 };

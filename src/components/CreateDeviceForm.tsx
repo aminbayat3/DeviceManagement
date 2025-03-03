@@ -1,23 +1,20 @@
 import React from "react";
 import DeviceForm from "./common/DeviceForm";
 
-import { useApi } from "../hooks/useApi";
+import { useDeviceContext } from "../context/DeviceContext";
 
-import { DeviceApiResponse, DeviceFormState, ActionType } from "../types/types";
-
+import { DeviceFormState, ActionType } from "../types/types";
 
 interface CreateDeviceFormProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
-  refreshDevices: () => void;
 }
 
 const CreateDeviceForm: React.FC<CreateDeviceFormProps> = ({
-  open,
-  onClose,
-  refreshDevices
+  isOpen,
+  onClose
 }) => {
-  const { apiRequest, loading, error } = useApi<DeviceApiResponse[]>("/objects");
+  const { createDevice } = useDeviceContext();
 
   const handleCreate = async (deviceData: DeviceFormState) => {
     const formattedDeviceData = {
@@ -31,19 +28,16 @@ const CreateDeviceForm: React.FC<CreateDeviceFormProps> = ({
           : undefined,
       },
     };
-    await apiRequest("POST", formattedDeviceData);
-    refreshDevices();
+    await createDevice(formattedDeviceData);
     onClose();
   };
 
   return (
     <DeviceForm
-      open={open}
+      isOpen={isOpen}
       onClose={onClose}
       onSave={handleCreate}
       actionType={ActionType.Create}
-      loading={loading}
-      error={error}
     />
   );
 };

@@ -1,10 +1,10 @@
-import { Device, DeviceCategory, StorageUnit } from "../types/types";
+import { Device, DeviceApiResponse, DeviceCategory, StorageUnit, DeviceFormState } from "../types/types";
 
 const colorRegex =
   /\b(black|white|silver|blue|red|green|purple|gray|gold|brown|elderberry|cloudy white)\b/i;
 
-export const formatDeviceData = (items: any[]): Device[] => {
-  return items.map((item: any) => {
+export const formatDeviceData = (items: DeviceApiResponse[]): Device[] => {
+  return items.map((item: DeviceApiResponse) => {
     const data = item.data || {};
     let name = item.name.trim();
 
@@ -17,7 +17,7 @@ export const formatDeviceData = (items: any[]): Device[] => {
     const { color, cleanedName: nameWithoutColor } = extractColor(name, data);
     name = nameWithoutColor;
 
-    const category: DeviceCategory = data.category || deriveCategory(name);
+    const category = data.category || deriveCategory(name);
 
     name = name.replace(/,\s*$/, "").trim();
 
@@ -25,7 +25,7 @@ export const formatDeviceData = (items: any[]): Device[] => {
       id: item.id,
       name,
       category,
-      price: parseFloat(data.price) || undefined,
+      price: data.price || (data.Price && parseFloat(data.Price)) || undefined,
       color,
       capacity,
       generation: data.Generation || data.generation || undefined,
@@ -104,6 +104,12 @@ const getCapacityFromData = (data: any): string | undefined => {
   ) {
     return data.Capacity;
   }
+  if (
+    typeof data.storage === "string" &&
+    data.storage.match(/^\d+\s?(GB|TB)$/i)
+  ) {
+    return data.storage;
+  }
   return undefined;
 };
 
@@ -113,7 +119,9 @@ const getCapacityFromName = (name: string): string | undefined => {
   return match ? `${match[1]} ${match[2]}` : undefined;
 };
 
-export const parseStorage = (storage: string | undefined): { storageSize: number | null; storageUnit: StorageUnit } => {
+export const parseStorage = (
+  storage: string | undefined
+): { storageSize: number | null; storageUnit: StorageUnit } => {
   if (!storage) return { storageSize: null, storageUnit: StorageUnit.GB };
 
   const storageRegex = /(\d+)\s?(GB|TB)/i;
@@ -128,3 +136,22 @@ export const parseStorage = (storage: string | undefined): { storageSize: number
 
   return { storageSize: null, storageUnit: StorageUnit.GB };
 };
+
+
+export const validateDeviceForm = (
+  device: DeviceFormState
+): { [key: string]: string } => {
+  let errors: { [key: string]: string } = {};
+
+  if (!device.name.trim() || device.name.length > 50)
+    errors.name = "Device name is required (max 50 chars).";
+
+  if (device.price === null || device.price < 1)
+    errors.price = "Price must be at least 1.";
+
+  if (device.storageSize === null || device.storageSize < 1)
+    errors.storageSize = "Storage size must be at least 1.";
+
+  return errors;
+};
+
